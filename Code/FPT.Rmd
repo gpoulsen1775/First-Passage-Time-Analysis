@@ -1,0 +1,94 @@
+
+---
+title: "FPT"
+author: "Grant Poulsen"
+date: "4/8/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Purpose: Verify that the FPT pdf for the ghost attractor model matches the statistical data collected. 
+
+Run Time: 30 Minutes
+
+Imports: pdf from FPT.mlx workspace. 
+
+```{r library, message = F}
+
+###Setup###
+library(sde)
+library(ggplot2)
+library(R.matlab)
+```
+
+
+```{r}
+###Import pdf data from FPT.mlx & plot it###
+t <- seq(0,4500,length=100)	
+pdf <- unlist(readMat('/Users/grantpoulsen/Desktop/Research/Data/pdf.mat'))
+plot(t, pdf, type = 'l')
+```
+
+
+```{r}
+
+###Gather statistical data on FPT for model###
+
+#Parameters
+r <- .05
+K <- 2
+a <- .023
+h <- .38
+q <- 5
+phiVal <- .02
+
+#Define drift and diffusion vectors
+mu <- expression(r*x*(1-(x/K)) - (a*x^5)/(x^5 + h^5))
+dif <- expression(phiVal*x)
+
+#Make Vectors to collect first passage times
+fpt <- vector(length = 10000, mode = "numeric")
+
+#For 10000 trials
+for(i in 1:10000){
+  
+ #Simulate the SDE
+ X <- sde.sim(t0 = 0,T = 4500,X0 = .3,N = 4500, drift = mu, sigma = dif, sigma.x = phiVal)
+ 
+ #For every time stamp
+ for(j in 1:4500)
+    
+   #Record the FPT
+   if(X[j] > .9798){
+     
+     fpt[i] = j
+     break
+   }
+}
+
+
+```
+
+
+```{r}
+
+###Plot pdf over Histogram Data###
+
+t <- seq(0,4500,length=100)	
+pdf <- unlist(readMat('/Users/grantpoulsen/Desktop/Research/Data/pdf.mat'))
+
+histogram <- hist(fpt, 
+                  main = '',
+                  xlab = "T_escape", 
+                  border = "Blue", 
+                  col = "Orange", 
+                  cex.axis = 1.48,
+                  cex.lab = 1.48,
+                  breaks = 22,
+                  freq = FALSE)
+par(new=TRUE)
+
+plt <- plot(t, pdf, type = 'l', axes = FALSE, ylab = '', xlab = '', lwd = 2.0, col = 'blue')
+
+```

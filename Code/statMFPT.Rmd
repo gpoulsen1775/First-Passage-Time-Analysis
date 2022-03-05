@@ -1,0 +1,166 @@
+---
+title: "statMFPT.Rmd"
+author: "Grant Poulsen"
+date: "7/25/2021"
+output: html_document
+---
+
+Purpose: Verify that our Mean First Passage Time Values Align With Statistically Collected Mean First Passage Time Values
+
+Run Time: A few hours
+
+Imports: mfptVals from mfpt.mlx
+
+```{r library, message = F}
+
+### Setup ###
+
+library(devtools)
+library(sde)
+install_github("HenrikBengtsson/R.matlab")
+library(R.matlab)
+```
+
+
+```{r}
+
+### SETUP Our Analytic Results ###
+
+#Ranges from inputs of .02 to .023
+mfptVals <- as.numeric(unlist(readMat("/Users/grantpoulsen/Desktop/Research/data/mfptVals.mat")))
+
+#Check 3 pts. We've checked more in past but it takes a very long time to do
+mfptAn <- vector(length = 3)
+
+#Get Values Were Testing
+mfptAn[1] = mfptVals[1]
+mfptAn[2] = mfptVals[100]
+mfptAn[3] = mfptVals[300]
+
+#Disp
+print(mfptAn)
+
+```
+
+```{r}
+
+### SIMULATION SAMPLING ###
+
+mfpt <- vector(length = 3);
+
+#Parameters
+r <- .05
+K <- 2
+a <- .02
+h <- .38
+q <- 5
+phiVal <- .02
+  
+#Define drift and diffusion Vectors
+mu <- expression(r*x*(1-(x/K)) - (a*x^5)/(x^5 + h^5))
+dif <- expression(phiVal*x)
+
+
+#Record MFPT for first model where a = .02
+########################################################
+
+#Get FPTs
+fpt <- vector(length = 10000)
+
+#For 10000 Sims
+for(j in 1:10000){
+    
+  X <- sde.sim(t0 = 0, T = 4500, X0 = .3, N = 4500, drift = mu, sigma = dif, sigma.x = phiVal)
+  
+  #Search Through Time Stamps
+  for(k in 1:4500){
+    
+    #Record FPT
+    if(X[k] > .9827){
+        
+      fpt[j] = k
+      break
+    }
+  }
+}
+
+mfpt[1] = mean(fpt)
+
+#Record MFPT for second model where a = .021
+########################################################
+
+a <- .021
+
+#Get FPTs
+fpt <- vector(length = 10000)
+
+#For 10000 Sims
+for(j in 1:10000){
+    
+  X <- sde.sim(t0 = 0, T = 8000, X0 = .3, N = 8000, drift = mu, sigma = dif, sigma.x = phiVal)
+  
+  #Search Through Time Stamps
+  for(k in 1:4500){
+    
+    #Record FPT
+    if(X[k] > .9817){
+        
+      fpt[j] = k
+      break
+    }
+  }
+}
+
+mfpt[2] = mean(fpt)
+
+#Record MFPT for third model where a = .023
+########################################################
+
+a <- .023
+
+#Get FPTs
+fpt <- vector(length = 10000)
+
+#For 10000 Sims
+for(j in 1:10000){
+    
+  X <- sde.sim(t0 = 0, T = 12000, X0 = .3, N = 12000, drift = mu, sigma = dif, sigma.x = phiVal)
+  
+  #Search Through Time Stamps
+  for(k in 1:4500){
+    
+    #Record FPT
+    if(X[k] > .9798){
+        
+      fpt[j] = k
+      break
+    }
+  }
+}
+
+mfpt[3] = mean(fpt)
+
+
+```
+
+```{r}
+### RESULTS OF TESTING PTS ###
+
+#Compare statistical and analytic points
+print(mfptAn)
+print(mfpt)
+
+#Make for plotting
+a <- vector(length = 3)
+
+a[1] = .02
+a[2] = .021
+a[3] = .023
+
+#Plot points over the top of each other
+plot(a,mfptAn)
+par(new = TRUE)
+plot(a,mfpt, axes = FALSE, ylab = '', xlab = '')
+
+#The analytic and statistical points are indistinguishable on the figure
+```
